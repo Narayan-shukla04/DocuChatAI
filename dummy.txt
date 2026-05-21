@@ -1,0 +1,1 @@
+Hello world, this is a test document for DocuChat AI. The purpose of this document is to verify the RAG pipeline is working correctly. It contains simple text that the AI can read and answer questions about.

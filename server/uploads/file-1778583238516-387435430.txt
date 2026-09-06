@@ -1,1 +1,0 @@
-The purpose of this document is to test the DocuChat AI system and ensure the RAG pipeline is working correctly.

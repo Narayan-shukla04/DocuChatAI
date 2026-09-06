@@ -1,17 +1,20 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
-import Chat from './pages/Chat';
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+
+const Home = lazy(() => import("./pages/Home"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Chat = lazy(() => import("./pages/Chat"));
 
 function App() {
   return (
     <div className="min-h-screen bg-dark-bg text-text-main font-sans">
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/chat/:docId" element={<Chat />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/chat/:docId" element={<Chat />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

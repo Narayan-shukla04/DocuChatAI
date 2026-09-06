@@ -4,84 +4,45 @@ const { getPineconeIndex } = require('./pineconeService');
 
 let embeddingsModel = null;
 
-/**
- * Get the Google Generative AI Embeddings model as a singleton
- */
 const getEmbeddingsModel = () => {
   if (!embeddingsModel) {
     embeddingsModel = new GoogleGenerativeAIEmbeddings({
       apiKey: process.env.GEMINI_API_KEY,
-      model: "gemini-embedding-001",
-      maxRetries: 3
+      model: 'gemini-embedding-001',
+      maxRetries: 3,
     });
   }
   return embeddingsModel;
 };
 
-/**
- * Store documents/text chunks in Pinecone
- */
 const storeVectorsInPinecone = async (docs) => {
   const embeddings = getEmbeddingsModel();
   const pineconeIndex = getPineconeIndex();
+  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  const batchSize = 100;
-  const maxRetries = 3;
-
-  const delay = (ms) => new Promise(res => setTimeout(res, ms));
-
-  for (let i = 0; i < docs.length; i += batchSize) {
-    const batch = docs.slice(i, i + batchSize);
+  for (let i = 0; i < docs.length; i += 100) {
+    const batch = docs.slice(i, i + 100);
     let attempts = 0;
-    let success = false;
-
-    while (attempts < maxRetries && !success) {
+    while (attempts < 3) {
       try {
-        const texts = batch.map(d => d.pageContent);
-        // Generate embeddings for the batch
-        const vectors = await embeddings.embedDocuments(texts);
-        
+        const vectors = await embeddings.embedDocuments(batch.map((d) => d.pageContent));
         const records = batch.map((doc, idx) => {
-          const sanitizedMeta = { ...doc.metadata };
-          // Remove complex nested objects that Pinecone rejects
-          if (sanitizedMeta.loc) delete sanitizedMeta.loc;
-          
-          return {
-            id: `${doc.metadata.docId}-${idx}-${Date.now()}`, // Unique ID for each chunk
-            values: vectors[idx],
-            metadata: { text: doc.pageContent, ...sanitizedMeta }
-          };
+          const meta = { ...doc.metadata };
+          delete meta.loc;
+          return { id: `${meta.docId}-${idx}-${Date.now()}`, values: vectors[idx], metadata: { text: doc.pageContent, ...meta } };
         });
-
-        // Upsert explicitly using { records: [...] } as required by Pinecone SDK v7
         await pineconeIndex.upsert({ records });
-        success = true;
+        break;
       } catch (error) {
         attempts++;
-        console.warn(`Pinecone batch insertion failed (Attempt ${attempts}/${maxRetries}): ${error.message}`);
-        if (attempts >= maxRetries) {
-          throw new Error(`Failed to upload to Pinecone after ${maxRetries} attempts: ${error.message}`);
-        }
-        await delay(2000 * attempts); // Exponential backoff
+        if (attempts >= 3) throw new Error(`Pinecone upsert failed after 3 attempts: ${error.message}`);
+        await delay(2000 * attempts);
       }
     }
   }
 };
 
-/**
- * Get a Pinecone Vector Store instance connected to our index
- */
-const getVectorStore = async () => {
-  const embeddings = getEmbeddingsModel();
-  const pineconeIndex = getPineconeIndex();
+const getVectorStore = async () =>
+  PineconeStore.fromExistingIndex(getEmbeddingsModel(), { pineconeIndex: getPineconeIndex() });
 
-  return await PineconeStore.fromExistingIndex(embeddings, {
-    pineconeIndex,
-  });
-};
-
-module.exports = {
-  getEmbeddingsModel,
-  storeVectorsInPinecone,
-  getVectorStore
-};
+module.exports = { getEmbeddingsModel, storeVectorsInPinecone, getVectorStore };

@@ -1,2 +1,0 @@
-This is a dummy file for testing DocuChat AI.
-It contains some text to verify the RAG system.

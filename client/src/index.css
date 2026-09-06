@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  --animate-gradient-x: gradient-x 3s ease infinite;
+  
+  @keyframes gradient-x {
+    0%, 100% {
+      background-size: 200% 200%;
+      background-position: left center;
+    }
+    50% {
+      background-size: 200% 200%;
+      background-position: right center;
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-text-main font-sans antialiased selection:bg-primary selection:text-white;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-dark-card/50 backdrop-blur-md border border-dark-border shadow-xl;
+  }
+  .neon-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-x;
+  }
+}
